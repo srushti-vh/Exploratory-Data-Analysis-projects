@@ -1,0 +1,301 @@
+---
+title: "LA 1"
+author: "Srushti VH(1NT23IS218)  Sannidhi MU(1NT23IS195)"
+format: html
+editor: visual
+---
+
+### **LA 1 Project**
+
+**Team Number** : 1
+
+**Team Name**: Eda Project
+
+**Team Members** : Srushti VH 1NT23IS218 Sec D , Sannidhi MU 1NT23IS195 Sec D
+
+## 1. **Title**
+
+Wildfire Data Analysis using R
+
+## **2.** **Problem Statement**
+
+The project aims to analyze wildfire data stored in a SQLite database using R. The objective is to clean, transform, and summarize the data to identify patterns in fire size, causes, and occurrence across states and years. This helps in understanding wildfire trends using data manipulation and visualization techniques.
+
+## **3.Dataset Description**
+
+-   Dataset: Wildfire (Fires table from SQLite database)
+
+-   Number of rows used: 2000 (or your limit)
+
+-   Important columns:
+
+```         
+-    FIRE_YEAR
+
+-    FIRE_SIZE
+
+-    STATE
+
+-    STAT_CAUSE_DESCR
+
+-    DISCOVERY_DATE 4.The dataset contains information about wildfire incidents including their size, cause, location, and time of occurrence.
+```
+
+## **Step 1.1:Load the dataset**
+
+```{r}
+library(DBI)
+library(RSQLite)
+
+con <- dbConnect(RSQLite::SQLite(), file.choose())
+```
+
+## **Step 1.2:Loading the dataset**
+
+```{r}
+dbListFields(con, "Fires")
+```
+
+```{r}
+dbListTables(con)
+```
+
+## **Step 1.3: Performing 50 command functions for the given dataset**
+
+```{r}
+fires <- dbGetQuery(con, "SELECT * FROM Fires LIMIT 2000")
+```
+
+```{r}
+fires_df <- fires
+```
+
+**1–10: Data Frame Info**
+
+```{r}
+fires_df <- fires[, !names(fires) %in% "Shape"]
+str(fires_df)
+summary(fires_df)
+dim(fires_df)
+nrow(fires_df)
+ncol(fires_df)
+colnames(fires_df)
+names(fires_df)
+head(fires_df)
+tail(fires_df)
+class(fires_df)
+```
+
+**11–15: Adding Columns**
+
+```{r}
+fires_df$SIZE_LEVEL <- ifelse(fires_df$FIRE_SIZE > 1000, "Large", "Small")
+fires_df$YEAR_GROUP <- cut(fires_df$FIRE_YEAR, breaks = 5)
+fires_df$LOG_SIZE <- log(fires_df$FIRE_SIZE + 1)
+fires_df$SQRT_SIZE <- sqrt(fires_df$FIRE_SIZE)
+fires_df$FIRE_INTENSITY <- ifelse(fires_df$FIRE_SIZE > 500, "High", "Low")
+colnames(fires_df)
+head(fires_df)
+```
+
+**16–18: Deleting Columns**
+
+```{r}
+fires_df$CONT_TIME <- NULL
+fires_df <- subset(fires_df, select = -DISCOVERY_TIME)
+fires_df <- fires_df[, !names(fires_df) %in% "FIRE_CODE"]
+
+```
+
+**19–22: Renaming Columns**
+
+```{r}
+colnames(fires_df)[colnames(fires_df)=="FIRE_SIZE"] <- "Fire_Size"
+names(fires_df)[names(fires_df)=="STATE"] <- "State"
+colnames(fires_df) <- make.names(colnames(fires_df))
+colnames(fires_df) <- toupper(colnames(fires_df))
+```
+
+**23–25: Reordering Columns**
+
+```{r}
+fires_df <- fires_df[, c("FIRE_YEAR", "FIRE_SIZE", "STATE")]
+fires_df <- fires_df[, order(names(fires_df))]
+fires_df <- fires_df[, c("STATE", "FIRE_YEAR", "FIRE_SIZE")]
+head(fires_df)
+dim(fires_df)
+```
+
+**26–30: Subsetting Data**
+
+```{r}
+subset(fires_df, FIRE_SIZE > 500)
+fires_df[fires_df$FIRE_SIZE > 1000, ]
+fires_df[1:20, ]
+fires_df[fires_df$STATE == "CA", ]
+fires_df[fires_df$FIRE_YEAR > 2010, ]
+```
+
+**31–35: Factor Handling**
+
+```{r}
+fires_df$STATE <- factor(fires_df$STATE)
+levels(fires_df$STATE)
+fires_df$STATE <- relevel(fires_df$STATE, ref = "CA")
+fires_df$STATE <- reorder(fires_df$STATE, fires_df$FIRE_SIZE)
+fires_df$STATE <- droplevels(fires_df$STATE)
+```
+
+**36–40: Recoding Variables**
+
+```{r}
+# 🔹 36: Recode FIRE_SIZE into categorical
+fires_df$SIZE_CAT <- ifelse(fires_df$FIRE_SIZE > 1000, "High", "Low")
+
+# 🔹 37: Convert SIZE_CAT to factor
+fires_df$SIZE_CAT <- factor(fires_df$SIZE_CAT)
+
+# 🔹 38: Recode FIRE_YEAR into categories
+fires_df$YEAR_CAT <- cut(fires_df$FIRE_YEAR, breaks = c(1990,2000,2010,2020))
+
+# 🔹 39: Safely convert STAT_CAUSE_DESCR to factor
+if("STAT_CAUSE_DESCR" %in% colnames(fires_df)) {
+  fires_df$CAUSE_CAT <- factor(fires_df$STAT_CAUSE_DESCR)
+} else {
+  print("STAT_CAUSE_DESCR column not found")
+}
+
+# 🔹 40: Convert STATE to character
+fires_df$STATE_NAME <- as.character(fires_df$STATE)
+```
+
+**41–45: Transforming Variables**
+
+```{r}
+fires_df$LOG_SIZE <- log(fires_df$FIRE_SIZE + 1)
+fires_df$SCALED_SIZE <- scale(fires_df$FIRE_SIZE)
+fires_df$SQRT_SIZE <- sqrt(fires_df$FIRE_SIZE)
+fires_df$ABS_SIZE <- abs(fires_df$FIRE_SIZE)
+fires_df$NORM_SIZE <- (fires_df$FIRE_SIZE - min(fires_df$FIRE_SIZE)) /
+                     (max(fires_df$FIRE_SIZE) - min(fires_df$FIRE_SIZE))
+summary(fires_df)
+head(fires_df)
+```
+
+**46–48: Grouping & Summarizing**
+
+```{r}
+library(dplyr)
+
+fires_df %>% group_by(STATE) %>% summarise(avg_size = mean(FIRE_SIZE))
+fires_df %>% group_by(FIRE_YEAR) %>% summarise(total = n())
+fires_df %>% group_by(STATE) %>% mutate(avg_state_size = mean(FIRE_SIZE))
+```
+
+**49–50: Standard Error & Confidence Interval**
+
+```{r}
+library(dplyr)
+
+summary_stats <- fires_df %>%
+  group_by(STATE) %>%
+  summarise(
+    mean_size = mean(FIRE_SIZE, na.rm = TRUE),
+    sd_size = sd(FIRE_SIZE, na.rm = TRUE),
+    n = n(),
+    se = sd_size / sqrt(n),
+    ci_lower = mean_size - 1.96 * se,
+    ci_upper = mean_size + 1.96 * se
+  )
+
+# SHOW OUTPUT
+print(summary_stats)
+head(summary_stats)
+```
+
+## 4. 📊 **Interpretation of Results**
+
+From the analysis of the wildfire dataset, several key insights can be drawn:
+
+-   **Fire Size Distribution:**\
+    Most fires fall under smaller size categories, while only a few fires are extremely large. This indicates a skewed distribution, which justified the use of transformations like log and normalization.
+
+-   **State-wise Analysis:**\
+    Certain states (e.g., California) show a higher frequency and larger average fire sizes, indicating higher wildfire risk regions.
+
+-   **Year-wise Trends:**\
+    The number of wildfire incidents varies across years, showing possible trends or fluctuations that may be linked to environmental or climatic factors.
+
+-   **Cause of Fires:**\
+    By recoding the cause of fires into categorical variables, it becomes easier to identify major contributing factors such as natural causes or human activities.
+
+-   **Data Transformation Impact:**\
+    Transformations improved interpretability and prepared the data for further statistical analysis by reducing skewness and scaling values.
+
+-   **Grouped Summaries:**\
+    Aggregating data by state and year helped in understanding regional and temporal patterns of wildfires.
+
+## 5.Graphs
+
+## 1. Fire Size Distribution (Histogram)
+
+```{r}
+hist(fires_df$FIRE_SIZE,
+     main = "Distribution of Fire Size",
+     xlab = "Fire Size",
+     ylab = "Frequency")
+```
+
+## 2. Fire Size by State (Bar Plot)
+
+```{r}
+state_counts <- table(fires_df$STATE)
+
+barplot(state_counts,
+        main = "Number of Fires by State",
+        xlab = "State",
+        ylab = "Count",
+        las = 2)
+```
+
+### Interpretation:
+
+-   Some states have more fires
+
+-   Helps identify high-risk regions.
+
+## 3. Average Fire Size by State
+
+```{r}
+library(dplyr)
+
+avg_size <- fires_df %>%
+  group_by(STATE) %>%
+  summarise(avg = mean(FIRE_SIZE))
+
+barplot(avg_size$avg,
+        names.arg = avg_size$STATE,
+        main = "Average Fire Size by State",
+        las = 2)
+```
+
+## 4. Fire Size vs Year (Line Plot)
+
+```{r}
+year_data <- fires_df %>%
+  group_by(FIRE_YEAR) %>%
+  summarise(total = n())
+
+plot(year_data$FIRE_YEAR, year_data$total,
+     type = "l",
+     main = "Number of Fires per Year",
+     xlab = "Year",
+     ylab = "Number of Fires")
+```
+
+```{r}
+boxplot(FIRE_SIZE ~ STATE,
+        data = fires_df,
+        main = "Fire Size Distribution by State",
+        las = 2)
+```

@@ -1,0 +1,441 @@
+---
+title: "LA 2"
+author: "Srushti VH(1nt23is218) Sannidhi MU(1nt23is195)"
+format: html
+editor: visual
+---
+
+### **LA 2 Project**
+
+**Team Number** : 1
+
+**Team Name**: Eda Project
+
+**Team Members** : Srushti VH 1NT23IS218 Sec D , Sannidhi MU 1NT23IS195 Sec D
+
+## 1. **Title**
+
+Wildfire Data Analysis using R
+
+## **2.** **Problem Statement**
+
+Wildfires are increasing in frequency and impact, making it important to analyze their patterns and causes. This project uses the US Wildfire dataset to perform data visualization and identify trends, relationships, and distributions of wildfire occurrences.
+
+Using [R Studio]{.underline} and [ggplot2]{.underline}, various colorful graphs such as scatter plots, histograms, box plots, and correlation matrices are created to better understand wildfire data.
+
+The goal is to transform raw data into meaningful visual insights by generating multiple visualizations.
+
+## **Step 1:Load the dataset**
+
+```{r}
+library(DBI)
+library(RSQLite)
+
+con <- dbConnect(RSQLite::SQLite(), file.choose())
+```
+
+```{r}
+dbListFields(con, "Fires")
+```
+
+```{r}
+dbListTables(con)
+```
+
+## Step 2 : Demonstrating 30 different visualizations from assigned dataset.
+
+```{r}
+library(ggplot2)
+
+theme_set(theme_minimal())  # clean look
+```
+
+```{r}
+wildfire <- dbReadTable(con, "Fires")
+head(wildfire)
+colnames(wildfire)
+```
+
+```{r}
+library(dplyr)
+
+wildfire_clean <- wildfire %>%
+  select(FIRE_YEAR, FIRE_SIZE, STATE) %>%
+  filter(!is.na(FIRE_YEAR), !is.na(FIRE_SIZE), !is.na(STATE)) %>%
+  filter(FIRE_SIZE > 0) %>%
+  slice_sample(n = 50000)   # reduce size (important!)
+top_states <- wildfire_clean %>%
+  count(STATE, sort = TRUE) %>%
+  slice_head(n = 10)
+
+wildfire_top <- wildfire_clean %>%
+  filter(STATE %in% top_states$STATE)
+```
+
+```{r}
+scale_color_viridis_d()
+scale_fill_viridis_d()
+```
+
+1️⃣ **Scatter Plot**
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_YEAR, FIRE_SIZE, color=STATE)) +
+  geom_point(alpha=0.5) +
+  scale_color_viridis_d()
+```
+
+**Interpretation:**\
+
+The scatter plot shows how fire size varies across years. Most fires are small, while a few large fires appear as outliers. There is no strong linear trend, but variability increases over time.
+
+2️⃣ **Scatter (log scale)**
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_YEAR, FIRE_SIZE, color=STATE)) +
+  geom_point(alpha=0.5) +
+  scale_y_log10() +
+  scale_color_viridis_d()
+```
+
+**Interpretation:**\
+
+Using a log scale makes small and large fires more comparable. It clearly highlights the distribution of medium-sized fires and reduces skewness caused by extreme values.
+
+3️⃣ **Line Plot**
+
+```{r}
+year_data <- wildfire_top %>%
+  group_by(FIRE_YEAR) %>%
+  summarise(total = sum(FIRE_SIZE))
+
+ggplot(year_data, aes(FIRE_YEAR, total)) +
+  geom_line(color="blue")
+```
+
+**Interpretation:**\
+This graph shows total fire size per year. It helps identify trends such as increasing wildfire activity or fluctuations over time.
+
+4️⃣ **Multi-Line**
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_YEAR, FIRE_SIZE, color=STATE)) +
+  geom_line(stat="summary", fun="sum") +
+  scale_color_viridis_d()
+```
+
+**Interpretation:**\
+
+This compares wildfire trends across different states. Some states consistently show higher fire sizes, indicating region-specific patterns.
+
+5️⃣ **Bar Plot**
+
+```{r}
+ggplot(wildfire_top, aes(STATE, fill=STATE)) +
+  geom_bar() +
+  scale_fill_viridis_d()
+```
+
+**Interpretation:**\
+
+The bar plot shows the number of wildfire incidents in each state. States with taller bars experience more frequent fires.
+
+### 6️⃣ Horizontal Bar Plot
+
+```{r}
+ggplot(wildfire_top, aes(STATE, fill=STATE)) +
+  geom_bar() +
+  coord_flip()
+```
+
+**Interpretation:**\
+
+This improves readability of state-wise comparisons. It clearly shows which states have the highest and lowest number of wildfires.
+
+7️⃣ Histogram
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_SIZE)) +
+  geom_histogram(fill="purple", bins=30)
+```
+
+**Interpretation:**\
+
+Most wildfires are small in size, with very few large fires. The distribution is highly right-skewed.
+
+8️⃣ Histogram (Log)
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_SIZE)) +
+  geom_histogram(fill="orange", bins=30) +
+  scale_x_log10()
+```
+
+**Interpretation:**\
+
+Log transformation spreads the data more evenly. It reveals patterns that were hidden due to extreme values.
+
+9️⃣ Box Plot
+
+```{r}
+ggplot(wildfire_top, aes(STATE, FIRE_SIZE, fill=STATE)) +
+  geom_boxplot() +
+  scale_fill_viridis_d()
+```
+
+**Interpretation:**\
+
+This shows median fire size and variability for each state. Many outliers indicate occasional extreme fires.
+
+🔟 Function Curve
+
+```{r}
+x <- seq(-10,10,0.1)
+y <- x^2
+plot(x,y,type="l",col="red")
+```
+
+**Interpretation:**\
+
+This is a sample mathematical curve used to demonstrate plotting functions. It is not related to wildfire data.
+
+1️⃣1️⃣ Basic Histogram
+
+```{r}
+hist(wildfire_top$FIRE_SIZE, col="cyan")
+```
+
+**Interpretation:**\
+
+Confirms that most fires are small. Large fires are rare but impactful.
+
+1️⃣2️⃣ Multiple Histograms
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_SIZE, fill=STATE)) +
+  geom_histogram(bins=20) +
+  facet_wrap(~STATE)
+```
+
+**Interpretation:**\
+
+Each state shows a similar skewed pattern, but the spread differs. Some states have wider distributions.
+
+1️⃣3️⃣ Density Plot
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_SIZE)) +
+  geom_density(fill = "blue", alpha = 0.5) +
+  scale_x_log10() +
+  ggtitle("Density Plot (Log Scale)")
+```
+
+**Interpretation:**\
+
+Provides a smooth distribution of fire sizes. It confirms the concentration of smaller fires.
+
+1️⃣4️⃣ Multi Density
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_SIZE, color=STATE)) +
+  geom_density()
+```
+
+**Interpretation:**\
+
+Different states show different density curves. This highlights variation in wildfire patterns across regions.
+
+1️⃣5️⃣ Frequency Polygon
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_SIZE, color=STATE)) +
+  geom_freqpoly(binwidth=100)
+```
+
+**Interpretation:**\
+
+Useful for comparing distributions of multiple states in a single graph. It shows relative frequency differences clearly.
+
+1️⃣6️⃣ Boxplot Basic
+
+```{r}
+boxplot(wildfire_top$FIRE_SIZE, col="pink")
+```
+
+**Interpretation:**\
+
+Shows overall spread of fire sizes. Presence of many outliers indicates extreme events.
+
+1️⃣7️⃣ Boxplot Notch
+
+```{r}
+boxplot(wildfire_top$FIRE_SIZE, notch=TRUE, col="yellow")
+```
+
+**Interpretation:**\
+
+Notches indicate confidence intervals around the median. Narrow notches suggest stable median values.
+
+1️⃣8️⃣ Boxplot + Mean
+
+```{r}
+ggplot(wildfire_top, aes(STATE, FIRE_SIZE, fill=STATE)) +
+  geom_boxplot() +
+  stat_summary(fun=mean, geom="point", color="red")
+```
+
+**Interpretation:**\
+
+The mean is often higher than the median due to large outliers, showing skewed data.
+
+1️⃣9️⃣ Violin Plot
+
+```{r}
+ggplot(wildfire_top, aes(STATE, FIRE_SIZE, fill=STATE)) +
+  geom_violin()
+```
+
+**Interpretation:**\
+
+Displays distribution shape and density. Wider sections indicate more frequent values.
+
+2️⃣0️⃣ Dot Plot
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_SIZE)) +
+  geom_dotplot(fill="green")
+```
+
+**Interpretation:**\
+
+Each dot represents observations. Useful for visualizing clustering of fire sizes.
+
+2️⃣1️⃣ Multiple Dot Plot
+
+```{r}
+ggplot(wildfire_top, aes(x = STATE, y = FIRE_SIZE, fill = STATE)) +
+  geom_dotplot(binaxis = "y",
+               stackdir = "center",
+               binwidth = 100) +
+  scale_fill_viridis_d() +
+  coord_cartesian(ylim = c(0, 1000)) +
+  ggtitle("Multiple Dot Plot ")
+```
+
+**Interpretation:**\
+
+Shows distribution across states using dots. Helps compare density visually.
+
+2️⃣2️⃣ Correlation Matrix
+
+```{r}
+library(corrplot)
+
+num <- wildfire_top %>% select_if(is.numeric)
+corrplot(cor(num), method="color")
+```
+
+**Interpretation:**\
+
+Shows relationships between numerical variables. Strong correlations indicate dependency between variables.
+
+2️⃣3️⃣ Network Graph
+
+```{r}
+library(igraph)
+
+edges <- wildfire_top %>% select(STATE, FIRE_SIZE) %>% head(200)
+g <- graph_from_data_frame(edges)
+
+plot(g, vertex.color=rainbow(10))
+```
+
+**Interpretation:**\
+
+Represents relationships between variables as a network. Useful for identifying clusters and connections.
+
+2️⃣4️⃣ Heatmap
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_YEAR, STATE, fill=FIRE_SIZE)) +
+  geom_tile()
+```
+
+**Interpretation:**\
+
+Shows intensity of fire size across years and states. Darker colors indicate larger fires.
+
+2️⃣5️⃣ Bubble Plot
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_YEAR, STATE, size=FIRE_SIZE, color=FIRE_SIZE)) +
+  geom_point(alpha=0.5)
+```
+
+**Interpretation:**\
+
+Bubble size represents fire size. Larger bubbles highlight major wildfire events.
+
+2️⃣6️⃣ Area Plot
+
+```{r}
+ggplot(year_data, aes(FIRE_YEAR, total)) +
+  geom_area(fill="lightblue")
+```
+
+**Interpretation:**\
+
+Shows cumulative trend over time. Increasing area indicates rising wildfire impact.
+
+2️⃣7️⃣ Stacked Bar
+
+```{r}
+ggplot(wildfire_top, aes(FIRE_YEAR, fill=STATE)) +
+  geom_bar()
+```
+
+**Interpretation:**\
+
+Shows contribution of each state over time. Helps compare state-wise wildfire trends.
+
+2️⃣8️⃣ Pie Chart
+
+```{r}
+pie_data <- wildfire_top %>%
+  count(STATE)
+
+pie(pie_data$n, col=rainbow(nrow(pie_data)))
+```
+
+**Interpretation:**\
+
+Represents proportion of fires by state. Larger slices indicate higher contributions.
+
+2️⃣9️⃣ Ridge Plot
+
+```{r}
+library(ggridges)
+
+ggplot(wildfire_top, aes(FIRE_SIZE, STATE, fill=STATE)) +
+  geom_density_ridges()
+```
+
+**Interpretation:**\
+
+Shows distribution across states in layered form. Useful for comparing multiple distributions.
+
+3️⃣0️⃣ Pair Plot
+
+```{r}
+library(GGally)
+
+ggpairs(wildfire_top %>% select_if(is.numeric))
+```
+
+**Interpretation:**\
+
+Displays relationships between multiple numeric variables. Helps identify trends, correlations, and outliers.
+
+### **Conclusion**
+
+This project analyzed the US Wildfire dataset using multiple visualization techniques in [R Studio]{.underline}. The results showed that wildfire data is highly skewed, with most fires being small and a few very large. Data preprocessing techniques were applied to improve visualization, and the study successfully demonstrated how graphical methods help in understanding patterns and trends in large datasets.\
